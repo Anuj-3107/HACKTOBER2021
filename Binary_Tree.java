@@ -1,6 +1,7 @@
 package Binary_Tree;
 
-import java.util.Scanner;
+import java.util.*;
+//importe
 
 public class Binary_Tree {
     private Node root;
