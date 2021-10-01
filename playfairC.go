@@ -1,9 +1,3 @@
-// Playfair Cipher
-// Plaintext = kata yang akan di enkripsi
-// 			didapat dari file external
-// Key = inputan pengguna
-// Chipertext = hasil enkripsi
-// 			hasilnya file external
 package main
 
 import (
