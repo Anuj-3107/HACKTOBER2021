@@ -1,0 +1,147 @@
+//Name- Abhijeet Raj
+//Id- 201952201
+
+#include <stdio.h>
+#include <math.h>
+unsigned short int encryption(unsigned short int plaintext, unsigned short int roundKeys[]){
+	unsigned short int encrypt=plaintext,c,d,i;
+	// unsigned short int z=0;
+	unsigned char x,y;
+	unsigned char sub_box[16]={14,4,13,1,2,15,11,8,3,10,6,12,5,9,0,7};
+	unsigned char p_box[16]={0,4,8,12,1,5,9,13,2,6,10,14,3,7,11,15};
+	for(i=0; i<3; i++){
+		encrypt=encrypt^roundKeys[i];
+		x=sub_box[encrypt%(int)pow(2,4)];
+		y=sub_box[(encrypt>>4)%(int)pow(2,4)];
+		c=(y<<4)|x;
+		x=sub_box[(encrypt>>8)%(int)pow(2,4)];
+		y=sub_box[(encrypt>>12)%(int)pow(2,4)];
+		d=(y<<4)|x;
+		encrypt=(d<<8)|c;
+//		for(int j=15;j>=0;j--)
+//		{
+//		    z=z|(((encrypt>>15-j)%2)<<15-p_box[j]);
+//		}
+//		encrypt=z;
+	}
+	encrypt=encrypt^roundKeys[3];
+	x=sub_box[encrypt%(int)pow(2,4)];
+	y=sub_box[(encrypt>>4)%(int)pow(2,4)];
+	c=(y<<4)|x;
+	x=sub_box[(encrypt>>8)%(int)pow(2,4)];
+	y=sub_box[(encrypt>>12)%(int)pow(2,4)];
+	d=(y<<4)|x;
+	encrypt=(d<<8)|c;
+	encrypt=encrypt^roundKeys[4];
+	return encrypt;
+}
+unsigned short int decryption(unsigned short int encrypt, unsigned short int roundKeys[]){
+	unsigned short int decrypt=encrypt,c,d,i;
+	// unsigned short int z=0;
+	unsigned char x,y;
+	unsigned char sub_box_inv[16]={14,3,4,8,1,12,10,15,7,13,9,6,11,2,0,5};
+	unsigned char p_box_inv[16]={0,4,8,12,1,5,9,13,2,6,10,14,3,7,11,15};
+	decrypt=decrypt^roundKeys[4];
+	x=sub_box_inv[decrypt%(int)pow(2,4)];
+	y=sub_box_inv[(decrypt>>4)%(int)pow(2,4)];
+	c=(y<<4)|x;
+	x=sub_box_inv[(decrypt>>8)%(int)pow(2,4)];
+	y=sub_box_inv[(decrypt>>12)%(int)pow(2,4)];
+	d=(y<<4)|x;
+	decrypt=(d<<8)|c;
+	decrypt=decrypt^roundKeys[3];
+	for( i=0; i<3; i++){
+//		for(int j=15;j>=0;j--){
+//			z=z|(((decrypt>>15-j)%2)<<15-p_box_inv[j]);
+//		}
+//		decrypt=z;
+		x=sub_box_inv[decrypt%(int)pow(2,4)];
+		y=sub_box_inv[(decrypt>>4)%(int)pow(2,4)];
+		c=(y<<4)|x;
+		x=sub_box_inv[(decrypt>>8)%(int)pow(2,4)];
+		y=sub_box_inv[(decrypt>>12)%(int)pow(2,4)];
+		d=(y<<4)|x;
+		decrypt=(d<<8)|c;
+		decrypt=decrypt^roundKeys[2-i];
+	}
+	return decrypt;
+
+}
+unsigned long long int CBCenc(unsigned short int pblock[],unsigned short int iv,unsigned short int roundKeys[]){
+	unsigned short int cblock[4];
+    unsigned long long int temp[4],enc;
+     //encrypted using CBC
+	pblock[0]=pblock[0]^iv;
+	cblock[0]=encryption(pblock[0],roundKeys);
+	pblock[1]=pblock[1]^cblock[0];
+	cblock[1]=encryption(pblock[1],roundKeys);
+	pblock[2]=pblock[2]^cblock[1];
+	cblock[2]=encryption(pblock[2],roundKeys);
+	pblock[3]=pblock[3]^cblock[2];
+	cblock[3]=encryption(pblock[3],roundKeys);
+	//merging 4 encrypted parts
+	temp[0]=cblock[0];
+	enc=temp[0]<<48;
+	temp[1]=cblock[1];
+	enc=enc|(temp[1]<<32);
+	temp[2]=cblock[2];
+	enc=enc|(temp[2]<<16);
+	temp[3]=cblock[3];
+	enc=enc|temp[3];
+	return enc;
+}
+
+unsigned long long int CBCdec(unsigned short int cblock[],unsigned short int iv,unsigned short int roundKeys[]){
+	unsigned short int dblock[4];
+    unsigned long long int temp[4],dec;
+    //decrypted using CBC
+	dblock[0]=decryption(cblock[0],roundKeys);
+	dblock[0]=dblock[0]^iv;
+	dblock[1]=decryption(cblock[1],roundKeys);
+	dblock[1]=dblock[1]^cblock[0];
+	dblock[2]=decryption(cblock[2],roundKeys);
+	dblock[2]=dblock[2]^cblock[1];
+	dblock[3]=decryption(cblock[3],roundKeys);
+	dblock[3]=dblock[3]^cblock[2];
+	//merging 4 decrypted parts
+	temp[0]=dblock[0];
+    dec=dec|(temp[0]<<48);
+    temp[1]=dblock[1];
+	dec=dec|(temp[1]<<32);
+	temp[2]=dblock[2];
+	dec=dec|(temp[2]<<16);
+	temp[3]=dblock[3];
+	dec=dec|temp[3];
+	return dec;
+}
+int main(){
+	unsigned long long int plaintext;
+	unsigned short int iv,pblock[4],cblock[4];
+	unsigned int key;
+	int i,j,k;
+    unsigned short int roundKeys[5];
+	printf("Enter the plaintext:-\n");
+	scanf("%lld",&plaintext);
+	printf("Enter the Secret Key:-\n");
+	scanf("%d",&key);
+	printf("Enter the IV:-\n");
+	scanf("%d",&iv);
+	
+	//Generating the round Keys
+	for(i=0;i<5;i++){
+		roundKeys[i]=(key>>(4*(4-i)))%(int)pow(2,16);
+	}
+	
+	for(j=3; j>=0; j--){
+		pblock[j]=(unsigned short int)(plaintext>>(16*(3-j)))%(int)pow(2,16);
+	}
+	//calling encryption function
+	unsigned long long int enc=CBCenc(pblock,iv,roundKeys);
+	printf("Encrypted text is:- %lld\n",enc);
+	for(k=3; k>=0; k--){
+		cblock[k]=(unsigned short int)(enc>>(16*(3-k)))%(int)pow(2,16);
+	}
+	//calling decryption function
+	unsigned long long int dec=CBCdec(cblock,iv,roundKeys);
+	printf("Decrypted text is:- %lld\n",dec);
+}
